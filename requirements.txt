@@ -1,5 +1,5 @@
 # ABCD Release 6 Thesis — Python dependencies
-# Generated from import analysis of src/ and notebooks/
+# Requires Python 3.10+ (uses X | None union type hint syntax)
 
 # Core scientific stack
 numpy==2.0.2

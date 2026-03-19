@@ -1,0 +1,103 @@
+# ── Regression Configuration ──
+# Predicting psychosis severity from dopaminergic brain features
+
+# Feature settings
+use_pca: false
+feature_mode: roi
+feature_transform: raw           # raw | asymmetry | total | ai_total
+roi_networks: [dopamine_core]
+
+# Imaging prefixes (for raw feature mode fallback)
+imaging_prefixes:
+  - mr_y_smri__vol__aseg__
+  - mr_y_smri__thk__dsk__
+  - mr_y_dti__is__fa__at__
+  - mr_y_dti__is__md__at__
+
+# ── ICV Correction ──
+icv_correction:
+  enabled: true
+  method: ratio              # ratio | residualize
+  # Volumes: feature / ICV
+  volume_substring: __vol__
+  # Cortical thickness: feature / ICV^(1/3)
+  thickness_substring: __thk__
+
+# ── Targets ──
+targets:
+  - name: pps_severity
+    column: mh_y_pps__severity_score
+  - name: pps_severity_mean
+    column: mh_y_pps__severity_mean
+  - name: pps_bother_count
+    column: mh_y_pps__bother__yes_count
+  - name: cbcl_anxiety
+    column: mh_p_cbcl__dsm__anx_sum
+
+# ── Research Questions ──
+# Q1: Cross-sectional (baseline brain → baseline PQ-BC)
+# Q2: Prospective (baseline brain → year 2 PQ-BC)
+# Q3: Change score (baseline brain → Δ PQ-BC)
+
+# ── Models ──
+baseline:
+  alpha: 1.0
+
+models:
+  svr:
+    enabled: true
+    kernel: linear
+    C: 1.0
+    epsilon: 0.1
+    gamma: scale
+    supports_sample_weight: false
+  ridge:
+    enabled: true
+    alpha: 1.0
+
+# ── Cross-Validation ──
+cv:
+  n_outer_splits: 5
+  family_aware: true
+  shuffle: true
+
+# ── Target Bin Filtering ──
+# Restrict to subjects within severity range (independent of weighting)
+bin_filter:
+  pps_severity: [30, 100]
+  pps_severity_year2: [30, 100]
+  pps_severity_year4: [30, 100]
+  pps_severity_y2_crosssectional: [30, 100]
+  pps_severity_y4_crosssectional: [30, 100]
+  cbcl_anxiety: null          # no filter initially; inspect distribution first
+
+# ── Sample Weighting ──
+sample_weighting:
+  enabled: false
+  method: inverse_freq
+
+# ── Covariates ──
+covariates:
+  residualize: true
+  apply_to_raw_scores_only: false
+  columns:
+    - ab_g_dyn__visit_age
+    - sex_mapped
+
+# ── Feature Importance ──
+feature_importance:
+  n_permutations: 200
+  coefficients: true
+
+# ── Evaluation ──
+evaluation:
+  metrics: [r2, mae, mse, rmse, pearson_r, spearman_r]
+
+# ── Permutation Test ──
+permutation:
+  n_permutations: 1000
+
+# ── Bootstrap CI ──
+bootstrap:
+  n_bootstrap: 10000
+  ci: 0.95

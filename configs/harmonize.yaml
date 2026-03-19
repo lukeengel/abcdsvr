@@ -1,0 +1,13 @@
+# ── ComBat Harmonization Configuration (Release 6) ──
+
+site_column: mr_y_adm__info__dev_model    # scanner model (finer than manufacturer)
+
+covariates:
+  - ab_g_dyn__visit_age    # age in decimal years
+  - sex_mapped             # male / female (after recoding)
+
+empirical_bayes: true
+reference_site: null
+smooth_terms: []
+
+save_model: true

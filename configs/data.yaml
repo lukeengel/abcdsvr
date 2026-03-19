@@ -1,0 +1,216 @@
+# ── ABCD Release 6 Data Configuration ──
+# Column names follow R6 BIDS-like naming convention
+
+files:
+  metadata:
+    - data/raw/release6/ab_p_demo.parquet        # demographics
+    - data/raw/release6/ab_g_stc.parquet         # static design: sex, family ID
+    - data/raw/release6/ab_g_dyn.parquet         # dynamic design: site, age, scanner serial
+    - data/raw/release6/mh_y_pps.parquet         # PPS psychosis severity
+    - data/raw/release6/mh_p_cbcl.parquet        # CBCL behavioral scales
+    - data/raw/release6/mr_y_adm__info.parquet   # scanner metadata
+    - data/raw/release6/mr_y_qc__post__aut.parquet  # QC metrics
+    - data/raw/release6/mr_y_qc__incl.parquet      # ABCD recommended imaging inclusion
+  imaging:
+    - data/raw/release6/mr_y_smri__vol__aseg.parquet   # subcortical volumes + ICV
+    - data/raw/release6/mr_y_smri__thk__dsk.parquet    # cortical thickness (Desikan)
+    - data/raw/release6/mr_y_dti__is__fa__at.parquet   # DTI FA tracts
+    - data/raw/release6/mr_y_dti__is__md__at.parquet   # DTI MD tracts
+
+columns:
+  mapping:
+    id: participant_id
+    timepoint: session_id
+    sex: ab_g_stc__cohort_sex        # 1=male, 2=female (in ab_g_stc, no session_id)
+    age: ab_g_dyn__visit_age         # age in YEARS (convert to months: *12)
+    scanner_model: mr_y_adm__info__dev_model
+    qc: mr_y_qc__post__aut__smri__topodfct_count
+    family_id: ab_g_stc__design_id__fam   # static file (no session_id)
+    site: ab_g_dyn__design_site
+
+  # Columns to retain after merge (non-imaging)
+  metadata:
+    - participant_id
+    - session_id
+    - ab_g_dyn__visit_age
+    - ab_g_stc__cohort_sex
+    - ab_g_stc__design_id__fam
+    - ab_g_dyn__design_site
+    - mr_y_adm__info__dev_model
+    - mr_y_qc__post__aut__smri__topodfct_count
+    - mr_y_qc__incl__smri__t1_indicator
+    - mr_y_qc__incl__dmri_indicator
+    - mh_y_pps__severity_score
+    - mh_y_pps__severity_mean
+    - mh_y_pps__bother__yes_count
+    - mh_y_pps_count
+    - mh_p_cbcl__dsm__anx_sum
+
+  derived:
+    - sex_mapped
+
+# Static files: merged on participant_id only (no session_id)
+static_files:
+  - data/raw/release6/ab_g_stc.parquet
+
+timepoints:
+  baseline: ses-00A
+  year2: ses-02A
+  year4: ses-04A
+  year6: ses-06A
+
+qc_thresholds:
+  surface_holes_max: 62
+
+# ABCD recommended imaging inclusion (mr_y_qc__incl)
+recommended_inclusion:
+  - mr_y_qc__incl__smri__t1_indicator
+  # - mr_y_qc__incl__dmri_indicator  # disabled: loses ~1085 subjects for 2 DTI features
+
+derived:
+  sex:
+    map: {'1': male, '2': female}
+    source: ab_g_stc__cohort_sex
+    target: sex_mapped
+
+splits:
+  train: 0.8
+  val: 0.1
+  test: 0.1
+  stratify: null   # regression mode: no group stratification
+
+missing:
+  require_complete_metadata:
+    - id
+    - age
+    - sex
+  require_complete_families:
+    - subcortical_volumes
+
+# ── ICV column for TBV correction ──
+icv_column: mr_y_smri__vol__aseg__icv_sum
+
+# ── Surface area column (for future reference) ──
+sa_column: mr_y_smri__area__dst_sum
+
+# ── Imaging column families (for prefix-based matching) ──
+imaging:
+  subcortical_volumes:
+    prefixes:
+      - mr_y_smri__vol__aseg__
+  dti_fa:
+    prefixes:
+      - mr_y_dti__is__fa__at__
+  cortical_thickness_dsk:
+    prefixes:
+      - mr_y_smri__thk__dsk__
+  dti_md:
+    prefixes:
+      - mr_y_dti__is__md__at__
+
+# ── ROI Features (Release 6 column names) ──
+roi_features:
+  dopamine_core:
+    structural:
+      # Caudate
+      - mr_y_smri__vol__aseg__cd__lh_sum
+      - mr_y_smri__vol__aseg__cd__rh_sum
+      # Putamen
+      - mr_y_smri__vol__aseg__pt__lh_sum
+      - mr_y_smri__vol__aseg__pt__rh_sum
+      # Pallidum
+      - mr_y_smri__vol__aseg__pl__lh_sum
+      - mr_y_smri__vol__aseg__pl__rh_sum
+      # VEDC / VTA
+      - mr_y_smri__vol__aseg__vdc__lh_sum
+      - mr_y_smri__vol__aseg__vdc__rh_sum
+      # Nucleus accumbens
+      - mr_y_smri__vol__aseg__ab__lh_sum
+      - mr_y_smri__vol__aseg__ab__rh_sum
+      # Thalamus
+      - mr_y_smri__vol__aseg__th__lh_sum
+      - mr_y_smri__vol__aseg__th__rh_sum
+    connectivity:
+      # Superior corticostriate MD (used in combined structural+DTI dataset)
+      - mr_y_dti__is__md__at__scs__lh_wmean
+      - mr_y_dti__is__md__at__scs__rh_wmean
+
+  salience:
+    structural:
+      # Accumbens (overlap with dopamine)
+      - mr_y_smri__vol__aseg__ab__lh_sum
+      - mr_y_smri__vol__aseg__ab__rh_sum
+    connectivity: []
+
+  thalamic:
+    structural:
+      - mr_y_smri__vol__aseg__th__lh_sum
+      - mr_y_smri__vol__aseg__th__rh_sum
+    connectivity: []
+
+  limbic:
+    structural:
+      # Hippocampus (hc)
+      - mr_y_smri__vol__aseg__hc__lh_sum
+      - mr_y_smri__vol__aseg__hc__rh_sum
+      # Amygdala (ag)
+      - mr_y_smri__vol__aseg__ag__lh_sum
+      - mr_y_smri__vol__aseg__ag__rh_sum
+    connectivity: []
+
+  cortical_dopamine:
+    structural:
+      # Superior frontal
+      - mr_y_smri__thk__dsk__sfrt__lh_mean
+      - mr_y_smri__thk__dsk__sfrt__rh_mean
+      # Rostral middle frontal
+      - mr_y_smri__thk__dsk__rmfrt__lh_mean
+      - mr_y_smri__thk__dsk__rmfrt__rh_mean
+      # Caudal middle frontal
+      - mr_y_smri__thk__dsk__cmfrt__lh_mean
+      - mr_y_smri__thk__dsk__cmfrt__rh_mean
+      # Lateral orbitofrontal
+      - mr_y_smri__thk__dsk__lobfrt__lh_mean
+      - mr_y_smri__thk__dsk__lobfrt__rh_mean
+      # Medial orbitofrontal
+      - mr_y_smri__thk__dsk__mobfrt__lh_mean
+      - mr_y_smri__thk__dsk__mobfrt__rh_mean
+      # Rostral anterior cingulate
+      - mr_y_smri__thk__dsk__rac__lh_mean
+      - mr_y_smri__thk__dsk__rac__rh_mean
+      # Caudal anterior cingulate
+      - mr_y_smri__thk__dsk__cac__lh_mean
+      - mr_y_smri__thk__dsk__cac__rh_mean
+      # Insula
+      - mr_y_smri__thk__dsk__ins__lh_mean
+      - mr_y_smri__thk__dsk__ins__rh_mean
+      # Superior temporal
+      - mr_y_smri__thk__dsk__stmp__lh_mean
+      - mr_y_smri__thk__dsk__stmp__rh_mean
+      # Entorhinal
+      - mr_y_smri__thk__dsk__er__lh_mean
+      - mr_y_smri__thk__dsk__er__rh_mean
+    connectivity: []
+
+# ── R6 abbreviation decoder (for display names) ──
+r6_abbreviations:
+  cd: caudate
+  pt: putamen
+  pl: pallidum
+  vdc: VEDC_VTA
+  ab: accumbens
+  ag: amygdala
+  th: thalamus
+  hc: hippocampus
+  scs: SCS
+  icv: ICV
+  sfrt: superior_frontal
+  rmfrt: rostral_middle_frontal
+  cmfrt: caudal_middle_frontal
+  lobfrt: lateral_orbitofrontal
+  mobfrt: medial_orbitofrontal
+  rac: rostral_anterior_cingulate
+  cac: caudal_anterior_cingulate
+  ins: insula
+  stmp: superior_temporal
+  er: entorhinal

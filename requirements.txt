@@ -1,0 +1,31 @@
+# ABCD Release 6 Thesis — Python dependencies
+# Generated from import analysis of src/ and notebooks/
+
+# Core scientific stack
+numpy==2.0.2
+pandas==2.2.3
+scipy==1.13.1
+scikit-learn==1.5.2
+
+# Visualization
+matplotlib==3.9.4
+seaborn==0.13.2
+
+# Neuroimaging harmonization (ComBat)
+neuroHarmonize==2.4.5
+
+# Statistics
+statsmodels==0.14.4
+
+# Configuration
+PyYAML==6.0.2
+
+# Parquet I/O (used by pandas read_parquet / to_parquet)
+pyarrow==18.1.0
+
+# Progress bars
+tqdm==4.67.1
+
+# Jupyter / notebook execution
+jupyter==1.1.1
+ipykernel==6.29.5

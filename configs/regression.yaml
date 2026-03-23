@@ -61,12 +61,17 @@ cv:
   family_aware: true
   shuffle: true
 
+# ── Baseline Severity Cutoff ──
+# All PPS analyses restrict to subjects with baseline PPS >= 30 (high severity).
+# For cross-sectional aims the bin_filter below applies to the target itself.
+# For prospective / change-score aims the baseline filter is applied in the
+# notebook after merge_longitudinal (since the target is Y2/Y4/delta, not BL).
+baseline_severity_cutoff: 30
+
 # ── Target Bin Filtering ──
 # Restrict to subjects within severity range (independent of weighting)
 bin_filter:
   pps_severity: [30, 100]
-  pps_severity_year2: [30, 100]
-  pps_severity_year4: [30, 100]
   pps_severity_y2_crosssectional: [30, 100]
   pps_severity_y4_crosssectional: [30, 100]
   cbcl_anxiety: null          # no filter initially; inspect distribution first
